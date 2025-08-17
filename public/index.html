@@ -1,0 +1,106 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Signup Form</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    
+    <style>
+         body{
+            font-family: Arial, sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height:100vh;
+         }
+         .signup-container {
+            background-color: #fff;
+            padding: 20px 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            width:300px;
+         }
+         .signup-container h2 {
+            text-align: center;
+            margin-bottom: 20px;
+         }
+
+         .signup-container input {
+           width: 100%;
+            padding: 10px;
+      margin: 8px 0;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+
+    .signup-container button {
+      width: 100%;
+      padding: 10px;
+      background-color: blue;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    .signup-container button:hover {
+      background-color: blue;
+    }
+    </style>
+</head>
+<body>
+    <div  class="signup-container">
+        <h2>Sign Up</h2>
+           <form id="Signup-form">
+               <input type="text" id="name" placeholder="Full name" />
+               <br></br>
+               <input type="email" id="email" placeholder="email"/>
+               <br></br>
+               <input type="password" id="password"  placeholder="Password"/>
+               <br></br>
+               <button type="submit">Submit</button>
+           </form>
+
+    </div>
+
+    <script>
+        const form=document.getElementById('Signup-form');
+        form.addEventListener('submit', async function(event) {
+
+            event.preventDefault();
+
+            const name=document.getElementById('name').value ;
+            const email=document.getElementById('email').value ;
+            const password=document.getElementById('password').value ;
+
+
+             if (!name || !email || !password) {
+              alert('All fields are required!');
+              return;
+            }
+
+        try {
+             const response = await axios.post('http://localhost:3000/api/signup', {
+             name, email,password
+             });
+
+          alert(response.data.message || 'Signup successful!');
+          window.location.href = 'login.html';
+          form.reset();
+            } catch (error) {
+                console.error('Error:', error);
+                if (error.response) {
+                  alert(error.response.data.message || 'Signup failed.');
+                } else {
+                   alert('Something went wrong while signing up.');
+                }
+            
+            } 
+});
+
+    </script> 
+</body>
+</html>

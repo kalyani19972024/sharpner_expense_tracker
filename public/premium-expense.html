@@ -1,0 +1,462 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Income & Expense Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <style>
+    body {
+      margin: 0;
+      padding: 24px;
+      font-family: system-ui,-apple-system,BlinkMacSystemFont,sans-serif;
+      background: #f0f3f8;
+      color: #1f2d3a;
+    }
+    .wrapper {
+      max-width: 1000px;
+      margin: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .top {
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+    }
+    .title {
+      font-size: 1.4rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .badge {
+      background: gold;
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: #1f2d3a;
+    }
+    .month-year-bar {
+      width: 100%;
+      text-align: center;
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-top: 4px;
+      padding: 6px 0;
+    }
+    .controls {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .controls .filter {
+      display: flex;
+      gap: 6px;
+    }
+    .controls button {
+      padding: 8px 14px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      background: #d9e2ef;
+      font-weight: 600;
+    }
+    .controls button.active {
+      background: #1f2d3a;
+      color: white;
+    }
+    .download-group {
+      display: flex;
+      gap: 8px;
+    }
+    .btn {
+      padding: 8px 14px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      background: #1f2d3a;
+      color: white;
+    }
+    .btn.disabled {
+      background: #b0b7c3;
+      cursor: not-allowed;
+    }
+    .section {
+      background: white;
+      padding: 16px;
+      border-radius: 8px;
+      box-shadow: 0 6px 18px -6px rgba(0,0,0,0.08);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+      margin-top: 8px;
+    }
+    th, td {
+      padding: 10px 12px;
+      text-align: left;
+      border-bottom: 1px solid #e8edf4;
+    }
+    th {
+      background: #f4f7fc;
+      font-weight: 600;
+    }
+    .income-val {
+      color: #0f9d58;
+      font-weight: 500;
+    }
+    .expense-val {
+      color: #d93025;
+      font-weight: 500;
+    }
+    .empty {
+      padding: 30px;
+      text-align: center;
+      color: #777;
+      font-style: italic;
+    }
+    .yearly-title {
+      margin-top: 4px;
+      font-weight: 600;
+      font-size: 1.1rem;
+    }
+    @media (max-width: 850px) {
+      .top { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="wrapper">
+    <div class="top">
+      <div class="title">
+        Income & Expense Dashboard <div class="badge">Premium</div>
+      </div>
+      <div class="controls">
+        <div class="filter">
+          <button data-range="daily" class="filter-btn active">Daily</button>
+          <button data-range="weekly" class="filter-btn">Weekly</button>
+          <button data-range="monthly" class="filter-btn">Monthly</button>
+        </div>
+        <div class="download-group">
+          <button id="downloadEntries" class="btn">Download Entries</button>
+          <button id="downloadYearly" class="btn">Download Yearly</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="month-year-bar" id="current-month-year">August 2025</div>
+
+    <!-- Filtered entries -->
+    <div class="section" aria-label="Filtered entries">
+      <div style="font-weight:600; margin-bottom:8px;">Entries (Daily / Weekly / Monthly)</div>
+      <div id="entry-table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Description</th>
+              <th>Category</th>
+              <th>Income</th>
+              <th>Expense</th>
+            </tr>
+          </thead>
+          <tbody id="entry-rows">
+            <!-- filled dynamically -->
+          </tbody>
+        </table>
+        <div id="empty-entries" class="empty" style="display:none;">
+          No entries for selected period.
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+  <h3>Update Income</h3>
+  <form id="incomeForm">
+    <label for="incomeInput">Monthly Income:</label>
+    <input type="number" id="incomeInput" required />
+    <button type="submit">Save</button>
+  </form>
+  <p id="incomeMessage" style="color: green; display: none;"></p>
+</div>
+
+     <!-- Pagination -->
+      <div class="pagination">
+        <div id="page-info">Page 1 of 1 — Total entries: 0</div>
+        <div class="page-controls">
+          <button id="firstBtn">First</button>
+          <button id="prevBtn">Prev</button>
+          <button id="nextBtn">Next</button>
+          <button id="lastBtn">Last</button>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- Yearly report always shown -->
+    <div class="section" aria-label="Yearly report">
+      <div class="yearly-title">Yearly Report (by month)</div>
+      <table>
+        <thead>
+          <tr>
+            <th>Month</th>
+            <th>Income</th>
+            <th>Expense</th>
+            <th>Savings</th>
+          </tr>
+        </thead>
+        <tbody id="yearly-rows">
+          <!-- filled dynamically -->
+        </tbody>
+      </table>
+      <div id="empty-yearly" class="empty" style="display:none;">
+        No data for current year.
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Premium flag
+    const isPremium = true; // set false to disable downloads
+
+    // State
+    let allEntries = [];
+    let filteredEntries = [];
+    let currentRange = 'daily';
+    let currentPage = 1;
+    const PER_PAGE = 10;
+
+    // Format helper
+    function fmtAmount(x) {
+      if (x == null || isNaN(Number(x))) return '-';
+      return '₹' + Number(x).toLocaleString('en-IN');
+    }
+
+    // Update centered month-year
+    function updateMonthYear() {
+      const now = new Date();
+      const options = { month: 'long', year: 'numeric' };
+      const text = now.toLocaleString('default', options);
+      document.getElementById('current-month-year').textContent = text;
+    }
+
+    // Public setter
+    function setDashboardEntries(entries) {
+      allEntries = Array.isArray(entries) ? entries.slice() : [];
+      applyFilter(currentRange);
+      renderYearly();
+    }
+
+    // Filtering logic
+    function applyFilter(range) {
+      currentRange = range;
+      const today = new Date();
+      let filtered = [...allEntries];
+      if (range === 'daily') {
+        const target = today.toISOString().split('T')[0];
+        filtered = allEntries.filter(e => e.date === target);
+      } else if (range === 'weekly') {
+        const weekAgo = new Date(today);
+        weekAgo.setDate(today.getDate() - 7);
+        filtered = allEntries.filter(e => new Date(e.date) >= weekAgo);
+      } else if (range === 'monthly') {
+        const monthAgo = new Date(today);
+        monthAgo.setMonth(today.getMonth() - 1);
+        filtered = allEntries.filter(e => new Date(e.date) >= monthAgo);
+      }
+      filteredEntries = filtered;
+      renderEntries(filteredEntries);
+    }
+
+    // Render entries with separate income/expense columns
+    function renderEntries(data) {
+      const tbody = document.getElementById('entry-rows');
+      const empty = document.getElementById('empty-entries');
+      tbody.innerHTML = '';
+      if (!data.length) {
+        empty.style.display = 'block';
+      } else {
+        empty.style.display = 'none';
+        data.forEach(r => {
+          const incomeVal = r.type === 'Income' ? fmtAmount(r.amount) : '-';
+          const expenseVal = r.type === 'Expense' ? fmtAmount(r.amount) : '-';
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${r.date}</td>
+            <td>${r.description || '-'}</td>
+            <td>${r.category || '-'}</td>
+            <td class="income-val">${incomeVal}</td>
+            <td class="expense-val">${expenseVal}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+    }
+
+    // Render pagination controls
+    function renderPagination() {
+      const info = document.getElementById('page-info');
+      const total = filteredEntries.length;
+      const totalPages = Math.max(1, Math.ceil(total / PER_PAGE));
+      info.textContent = `Page ${currentPage} of ${totalPages} — Total entries: ${total}`;
+      document.getElementById('firstBtn').disabled = currentPage === 1;
+      document.getElementById('prevBtn').disabled = currentPage === 1;
+      document.getElementById('nextBtn').disabled = currentPage === totalPages;
+      document.getElementById('lastBtn').disabled = currentPage === totalPages;
+    }
+
+
+    // Yearly aggregation
+    function getYearlyData() {
+      const now = new Date();
+      const year = now.getFullYear();
+      const months = {};
+      allEntries.forEach(e => {
+        if (!e.date) return;
+        const d = new Date(e.date);
+        if (d.getFullYear() !== year) return;
+        const m = d.getMonth();
+        if (!months[m]) months[m] = { income: 0, expense: 0 };
+        if (e.type === 'Income') months[m].income += Number(e.amount);
+        else if (e.type === 'Expense') months[m].expense += Number(e.amount);
+      });
+      const result = [];
+      for (let i = 0; i < 12; i++) {
+        const { income = 0, expense = 0 } = months[i] || {};
+        result.push({
+          month: new Date(0, i).toLocaleString('default', { month: 'short' }),
+          income,
+          expense,
+          savings: income - expense
+        });
+      }
+      return result;
+    }
+
+    function renderYearly() {
+      const data = getYearlyData();
+      const tbody = document.getElementById('yearly-rows');
+      const empty = document.getElementById('empty-yearly');
+      tbody.innerHTML = '';
+      const hasData = data.some(d => d.income !== 0 || d.expense !== 0);
+      if (!hasData) {
+        empty.style.display = 'block';
+      } else {
+        empty.style.display = 'none';
+        data.forEach(r => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${r.month}</td>
+            <td class="income-val">${fmtAmount(r.income)}</td>
+            <td class="expense-val">${fmtAmount(r.expense)}</td>
+            <td>${fmtAmount(r.savings)}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+    }
+
+    // Wire filter buttons
+    document.querySelectorAll('.filter-btn').forEach(b => {
+      b.addEventListener('click', () => {
+        document.querySelectorAll('.filter-btn').forEach(x => x.classList.remove('active'));
+        b.classList.add('active');
+        applyFilter(b.dataset.range);
+      });
+    });
+
+     // Pagination button handlers
+    document.getElementById('firstBtn').addEventListener('click', () => {
+      currentPage = 1;
+      renderEntries();
+      renderPagination();
+    });
+    document.getElementById('prevBtn').addEventListener('click', () => {
+      if (currentPage > 1) currentPage--;
+      renderEntries();
+      renderPagination();
+    });
+    document.getElementById('nextBtn').addEventListener('click', () => {
+      const totalPages = Math.max(1, Math.ceil(filteredEntries.length / PER_PAGE));
+      if (currentPage < totalPages) currentPage++;
+      renderEntries();
+      renderPagination();
+    });
+    document.getElementById('lastBtn').addEventListener('click', () => {
+      currentPage = Math.max(1, Math.ceil(filteredEntries.length / PER_PAGE));
+      renderEntries();
+      renderPagination();
+    });
+
+    // Download entries
+    document.getElementById('downloadEntries').addEventListener('click', () => {
+      if (!isPremium) return;
+      const headers = ['Date','Description','Category','Income','Expense'];
+      const rows = filteredEntries.map(r => {
+        const income = r.type === 'Income' ? r.amount : '';
+        const expense = r.type === 'Expense' ? r.amount : '';
+        return [r.date, r.description || '', r.category || '', income, expense];
+      });
+      const csv = [headers, ...rows]
+        .map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(','))
+        .join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'income_expenses.csv';
+      a.click();
+    });
+
+    // Download yearly
+    document.getElementById('downloadYearly').addEventListener('click', () => {
+      if (!isPremium) return;
+      const data = getYearlyData();
+      const headers = ['Month','Income','Expense','Savings'];
+      const rows = data.map(r => [r.month, r.income, r.expense, r.savings]);
+      const csv = [headers, ...rows]
+        .map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(','))
+        .join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'yearly_report.csv';
+      a.click();
+    });
+
+    // Disable buttons if not premium
+    function updateDownloadButtons() {
+      if (!isPremium) {
+        document.getElementById('downloadEntries').classList.add('disabled');
+        document.getElementById('downloadYearly').classList.add('disabled');
+      }
+    }
+
+    // Init
+    updateMonthYear();
+    updateDownloadButtons();
+    applyFilter(currentRange);
+    renderYearly();
+
+    // Expose setter globally
+    window.setDashboardEntries = setDashboardEntries;
+      // Example data to test pagination (remove in production)
+    window.setDashboardEntries([
+      { date: '2025-08-02', description: 'Lunch', category: 'Food', amount: 250, type: 'Expense' },
+      { date: '2025-08-02', description: 'Project payout', category: 'Work', amount: 12000, type: 'Income' },
+      { date: '2025-08-01', description: 'Groceries', category: 'Household', amount: 800, type: 'Expense' },
+      // you can add more entries here to see pagination in action
+    ]);
+     </script>
+
+</body>
+</html>

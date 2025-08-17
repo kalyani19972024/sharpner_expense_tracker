@@ -1,0 +1,394 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Add Expense</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f7f7f7;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+      width: 100%;
+      max-width: 400px;
+    }
+
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 10px;
+      margin: 8px 0;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      margin-top: 12px;
+      border: none;
+      border-radius: 4px;
+      background-color: #007bff;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    .back-link {
+      margin-top: 20px;
+      text-align: center;
+    }
+
+    .back-link a {
+      color: #007bff;
+      text-decoration: none;
+    }
+
+    .back-link a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+
+<body>
+    <div class="container">
+    
+
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+  
+  <button id="buyPremiumBtn" style="padding: 5px 10px; font-size: 14px; background-color: gold; border: none; border-radius: 4px; cursor: pointer;">
+    Buy Premium
+  </button>
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+</div>
+
+    <h2>Add Expense</h2>
+<div id="premiumSection" >
+  <h3></h3>
+  <!-- <button id="showLeaderboardBtn" >Show Leaderboard</button> -->
+  <button id="showLeaderboardBtn" style="display: none;">Show Leaderboard</button>
+
+</div>
+    <form id="expense-form">
+      <input type="number" id="amount" placeholder="Amount Spent" required />
+      <input type="text" id="description" placeholder="Description" required />
+      <select id="category" required>
+        <option value="">Select Category</option>
+        <option value="Food">Food</option>
+        <option value="Petrol">Petrol</option>
+        <option value="Misc">Misc</option>
+      </select>
+      <input type="text" id="note" placeholder="Short comment"  required />
+
+      <button type="submit">Add Expense</button>
+
+  
+
+    </form>
+
+    <h3>Expenses:</h3>
+    <div id="expenseContainer"></div>
+
+    <!-- Pagination controls -->
+<div id="paginationWrapper" style="display:none; margin-top:10px; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+  <div id="pageInfo" style="font-size:0.9rem;">Page 1 of 1 — Total: 0</div>
+  <div style="display:flex; gap:6px;">
+    <button id="firstPageBtn" style="padding:6px 10px;">First</button>
+    <button id="prevPageBtn" style="padding:6px 10px;">Prev</button>
+    <button id="nextPageBtn" style="padding:6px 10px;">Next</button>
+    <button id="lastPageBtn" style="padding:6px 10px;">Last</button>
+  </div>
+</div>
+
+   
+<!-- Leaderboard display -->
+<div id="leaderboard" >
+  <h4>Leaderboard</h4>
+  <ul id="leaderboardList"></ul>
+</div>
+
+  </div>
+
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<script>
+  const token = localStorage.getItem('token');
+  let editMode = false;
+  let editExpenseId = null;
+
+   // Pagination state
+  let allExpenses = []; // full list from server
+  let currentPage = 1;
+  const PER_PAGE = 2;
+
+  document.addEventListener('DOMContentLoaded', async () => {
+     const token = localStorage.getItem('token');
+    if (token) {
+      fetchExpenses(); // call immediately on page load
+    }
+  await checkPremiumStatus();
+  await fetchExpenses();
+  document.getElementById('showLeaderboardBtn').addEventListener('click', fetchLeaderboard);
+   document.getElementById('firstPageBtn').addEventListener('click', () => changePage(1));
+    document.getElementById('prevPageBtn').addEventListener('click', () => changePage(currentPage - 1));
+    document.getElementById('nextPageBtn').addEventListener('click', () => changePage(currentPage + 1));
+    document.getElementById('lastPageBtn').addEventListener('click', () => {
+      const last = Math.max(1, Math.ceil(allExpenses.length / PER_PAGE));
+      changePage(last);
+    });
+  });
+
+  // ✅ Add or Update Expense
+  document.getElementById('expense-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const amount = document.getElementById('amount').value;
+    const description = document.getElementById('description').value;
+    const category = document.getElementById('category').value;
+    const note=  document.getElementById('note').value;
+    
+    try {
+      if (editMode) {
+        await axios.put(`http://localhost:3000/api/expenses/${editExpenseId}`, {
+          amount, description, category,note
+        }, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        alert('Expense updated');
+      } else {
+        await axios.post('http://localhost:3000/api/expenses', {
+          amount, description, category,note
+        }, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        alert('Expense added');
+      }
+      await fetchExpenses();
+      resetForm();
+      
+      //await fetchLeaderboard();// update leaderboard
+    } catch (err) {
+      console.error('Error:', err);
+      alert(editMode ? 'Failed to update expense' : 'Failed to add expense');
+    }
+  });
+
+  async function fetchExpenses() {
+    try {
+      const res = await axios.get('http://localhost:3000/api/expenses', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+     allExpenses = Array.isArray(res.data) ? res.data.slice() : [];
+      if (currentPage > Math.ceil(allExpenses.length / PER_PAGE)) {
+        currentPage = Math.max(1, Math.ceil(allExpenses.length / PER_PAGE));
+      }
+      renderExpensePage();
+      renderPaginationControls();
+    } catch (err) {
+      console.error('Fetch error:', err);
+    }
+  }
+
+   function renderExpensePage() {
+    const container = document.getElementById('expenseContainer');
+    container.innerHTML = '';
+    const total = allExpenses.length;
+    const totalPages = Math.max(1, Math.ceil(total / PER_PAGE));
+    const startIdx = (currentPage - 1) * PER_PAGE;
+    const pageSlice = allExpenses.slice(startIdx, startIdx + PER_PAGE);
+
+    if (!pageSlice.length) {
+      container.innerHTML = `<div style="padding:8px; color:#555;">No expenses to show.</div>`;
+    } else {
+      pageSlice.forEach((exp, idx) => {
+        const div = document.createElement('div');
+        div.style.border = '1px solid #ccc';
+        div.style.padding = '5px';
+        div.style.marginBottom = '5px';
+        div.style.borderRadius = '5px';
+        div.style.display = 'flex';
+        div.style.justifyContent = 'space-between';
+        div.style.alignItems = 'center';
+        div.style.gap = '15px';
+
+        div.innerHTML = `
+          <span><strong>₹${exp.amount}</strong></span>
+          <span>${exp.description}</span>
+          <span><em>${exp.category}</em></span>
+          <span><em>${exp.note}</em></span>
+          <div style="display:flex; gap:6px;">
+            <button onclick="editExpense(${exp.id}, ${exp.amount}, '${escapeSingleQuote(exp.description)}', '${escapeSingleQuote(exp.category)}')">Edit</button>
+            <button onclick="deleteExpense(${exp.id})">Delete</button>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+    }
+  }
+    
+  function renderPaginationControls() {
+    const wrapper = document.getElementById('paginationWrapper');
+    const info = document.getElementById('pageInfo');
+    const total = allExpenses.length;
+    const totalPages = Math.max(1, Math.ceil(total / PER_PAGE));
+    wrapper.style.display = total === 0 ? 'none' : 'flex';
+    info.textContent = `Page ${currentPage} of ${totalPages} — Total: ${total}`;
+
+    document.getElementById('firstPageBtn').disabled = currentPage === 1;
+    document.getElementById('prevPageBtn').disabled = currentPage === 1;
+    document.getElementById('nextPageBtn').disabled = currentPage === totalPages;
+    document.getElementById('lastPageBtn').disabled = currentPage === totalPages;
+  }
+
+  function changePage(newPage) {
+    const totalPages = Math.max(1, Math.ceil(allExpenses.length / PER_PAGE));
+    if (newPage < 1) newPage = 1;
+    if (newPage > totalPages) newPage = totalPages;
+    currentPage = newPage;
+    renderExpensePage();
+    renderPaginationControls();
+  }    
+
+  async function deleteExpense(id) {
+    try {
+      await axios.delete(`http://localhost:3000/api/expenses/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      await fetchExpenses();
+    } catch (err) {
+      console.error('Delete error:', err);
+    }
+  }
+
+  function editExpense(id, amount, description, category,note) {
+    document.getElementById('amount').value = amount;
+    document.getElementById('description').value = description;
+    document.getElementById('category').value = category;
+    document.getElementById('note').value = note;
+
+    editMode = true;
+    editExpenseId = id;
+
+    document.querySelector('#expense-form button').textContent = 'Update Expense';
+  }
+
+  function resetForm() {
+    document.getElementById('expense-form').reset();
+    editMode = false;
+    editExpenseId = null;
+    document.querySelector('#expense-form button').textContent = 'Add Expense';
+  }
+
+  
+  function escapeSingleQuote(str) {
+    return String(str).replace(/'/g, "\\'");
+  }
+
+ document.getElementById("buyPremiumBtn").onclick = async function(event) {
+    const token = localStorage.getItem("token");
+    const response = await axios.get('http://localhost:3000/api/purchase/premiummembership', {
+        headers: { Authorization: `Bearer ${token}` }
+    });
+
+    console.log(response);
+    var options= 
+    {
+       "key":response.data.key_id ,
+       "order_id":response.data.order.id ,
+       "handler" : async function (response) {
+        await axios.post('http://localhost:3000/api/purchase/updatetransactionstatus',{
+            order_id: options.order_id ,
+            payment_id: response.razorpay_payment_id, 
+          },  {headers : {Authorization: `Bearer ${token}`}});
+
+          alert('You are a premium user now');
+
+          // ✅ Enable the leaderboard button after payment
+          document.getElementById("showLeaderboardBtn").style.display = "inline-block";
+          
+
+      }
+    };
+    const rzp1= new Razorpay(options);
+    rzp1.open();
+    event.preventDefault();
+
+    rzp1.on('payment .failed' , function(response){
+      console.log(response);
+      alert('something went wrong');
+    });
+
+  }
+
+
+
+  // ✅ Check Premium Status and Show Leaderboard Button
+  async function checkPremiumStatus() {
+
+    const token = localStorage.getItem('token');
+
+    try {
+      const res = await axios.get('http://localhost:3000/api/user/status', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (res.data.isPremium ) {
+           document.getElementById('premiumSection').innerText = 'You are a Premium User ';
+      document.getElementById('showLeaderboardBtn').style.display = 'block';
+      }
+
+    } catch (err) {
+      console.error('Premium check error:', err);
+    }
+  }
+
+ async function fetchLeaderboard() {
+    try {
+      const res = await axios.get('http://localhost:3000/api/premium/leaderboard', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      const leaderboardList = document.getElementById('leaderboardList');
+      leaderboardList.innerHTML = '';
+
+      res.data.forEach(user => {
+         const name = user.name;
+  const total = user.totalExpense || 0;
+        const li = document.createElement('li');
+        li.innerText = `name-${user.name} - totalExpense-₹${user.totalExpense}`;
+        leaderboardList.appendChild(li);
+      });
+
+      document.getElementById('leaderboard').style.display = 'block';
+    } catch (err) {
+      console.error('Failed to load leaderboard:', err);
+    }
+  }
+
+  // Event listener for leaderboard button
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('showLeaderboardBtn').addEventListener('click', fetchLeaderboard);
+  });
+
+ 
+</script>
+
+</body>
+</html>
