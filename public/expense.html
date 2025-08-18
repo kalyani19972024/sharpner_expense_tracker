@@ -1,10 +1,11 @@
 
 <!DOCTYPE html>
 <html lang="en">
+  <script src="/config.js"></script>
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Add Expense</title>
+  <title>Day To Day Expense </title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -80,12 +81,17 @@
   </button>
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 </div>
-
-    <h2>Add Expense</h2>
+<h2>Add Income</h2>
+    <form id="income-form" style="display:flex; gap:10px; align-items:center; margin-bottom:20px;">
+       <input type="number" id="incomeAmount" placeholder="Income Amount" required />
+      
+   </form>
+    
+<h2>Add Expense</h2>
 <div id="premiumSection" >
   <h3></h3>
-  <!-- <button id="showLeaderboardBtn" >Show Leaderboard</button> -->
-  <button id="showLeaderboardBtn" style="display: none;">Show Leaderboard</button>
+   
+  
 
 </div>
     <form id="expense-form">
@@ -98,10 +104,11 @@
         <option value="Misc">Misc</option>
       </select>
       <input type="text" id="note" placeholder="Short comment"  required />
+      
 
       <button type="submit">Add Expense</button>
-
-  
+      <button id="showLeaderboardBtn" style="display: none;">Show Leaderboard</button>
+      <button id="downloadBtn" style='display: none;'>Download Expenses</button>
 
     </form>
 
@@ -140,10 +147,35 @@
   const PER_PAGE = 2;
 
   document.addEventListener('DOMContentLoaded', async () => {
+
+    console.log("********* Begining ************");
      const token = localStorage.getItem('token');
-    if (token) {
+     if (!token) return;
+
+      if (token) {
       fetchExpenses(); // call immediately on page load
     }
+
+
+  // Download event
+  document.getElementById("downloadBtn").addEventListener("click", async () => {
+    try {
+      const response = await axios.get(`${window.API_BASE_URL}/api/expenses/download`, {
+        headers: { Authorization: `Bearer ${token}` },
+        responseType: "blob" // Important for file download
+      });
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", "expenses.csv");
+      document.body.appendChild(link);
+      link.click();
+    } catch (err) {
+      console.error("Download failed", err);
+    }
+   });
+   
   await checkPremiumStatus();
   await fetchExpenses();
   document.getElementById('showLeaderboardBtn').addEventListener('click', fetchLeaderboard);
@@ -159,6 +191,8 @@
   // ✅ Add or Update Expense
   document.getElementById('expense-form').addEventListener('submit', async (e) => {
     e.preventDefault();
+     
+    const incomeAmount = document.getElementById("incomeAmount").value;
     const amount = document.getElementById('amount').value;
     const description = document.getElementById('description').value;
     const category = document.getElementById('category').value;
@@ -166,24 +200,23 @@
     
     try {
       if (editMode) {
-        await axios.put(`http://localhost:3000/api/expenses/${editExpenseId}`, {
+        await axios.put(`${window.API_BASE_URL}/api/expenses/${editExpenseId}`, {
           amount, description, category,note
         }, {
           headers: { Authorization: `Bearer ${token}` }
         });
         alert('Expense updated');
       } else {
-        await axios.post('http://localhost:3000/api/expenses', {
-          amount, description, category,note
+        await axios.post(`${window.API_BASE_URL}/api/expenses`, {
+          amount, description, category,note,incomeAmount
         }, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        alert('Expense added');
+
+        alert('Expense and Income added successfully!');
       }
       await fetchExpenses();
       resetForm();
-      
-      //await fetchLeaderboard();// update leaderboard
     } catch (err) {
       console.error('Error:', err);
       alert(editMode ? 'Failed to update expense' : 'Failed to add expense');
@@ -192,7 +225,7 @@
 
   async function fetchExpenses() {
     try {
-      const res = await axios.get('http://localhost:3000/api/expenses', {
+      const res = await axios.get(`${window.API_BASE_URL}/api/expenses`, {
         headers: { Authorization: `Bearer ${token}` }
       });
      allExpenses = Array.isArray(res.data) ? res.data.slice() : [];
@@ -222,11 +255,11 @@
         div.style.border = '1px solid #ccc';
         div.style.padding = '5px';
         div.style.marginBottom = '5px';
-        div.style.borderRadius = '5px';
+        div.style.borderRadius = '2px';
         div.style.display = 'flex';
         div.style.justifyContent = 'space-between';
         div.style.alignItems = 'center';
-        div.style.gap = '15px';
+        div.style.gap = '10px';
 
         div.innerHTML = `
           <span><strong>₹${exp.amount}</strong></span>
@@ -268,7 +301,7 @@
 
   async function deleteExpense(id) {
     try {
-      await axios.delete(`http://localhost:3000/api/expenses/${id}`, {
+      await axios.delete(`${window.API_BASE_URL}/api/expenses/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       await fetchExpenses();
@@ -303,7 +336,7 @@
 
  document.getElementById("buyPremiumBtn").onclick = async function(event) {
     const token = localStorage.getItem("token");
-    const response = await axios.get('http://localhost:3000/api/purchase/premiummembership', {
+    const response = await axios.get(`${window.API_BASE_URL}/api/purchase/premiummembership`, {
         headers: { Authorization: `Bearer ${token}` }
     });
 
@@ -313,7 +346,7 @@
        "key":response.data.key_id ,
        "order_id":response.data.order.id ,
        "handler" : async function (response) {
-        await axios.post('http://localhost:3000/api/purchase/updatetransactionstatus',{
+        await axios.post(`${window.API_BASE_URL}/api/purchase/updatetransactionstatus`,{
             order_id: options.order_id ,
             payment_id: response.razorpay_payment_id, 
           },  {headers : {Authorization: `Bearer ${token}`}});
@@ -321,8 +354,9 @@
           alert('You are a premium user now');
 
           // ✅ Enable the leaderboard button after payment
-          document.getElementById("showLeaderboardBtn").style.display = "inline-block";
-          
+   document.getElementById("showLeaderboardBtn").style.display = "inline-block";
+   document.getElementById('downloadBtn').style.display = "block";
+   
 
       }
     };
@@ -330,7 +364,7 @@
     rzp1.open();
     event.preventDefault();
 
-    rzp1.on('payment .failed' , function(response){
+    rzp1.on('payment.failed' , function(response){
       console.log(response);
       alert('something went wrong');
     });
@@ -345,13 +379,14 @@
     const token = localStorage.getItem('token');
 
     try {
-      const res = await axios.get('http://localhost:3000/api/user/status', {
+      const res = await axios.get(`${window.API_BASE_URL}/api/user/status`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
       if (res.data.isPremium ) {
            document.getElementById('premiumSection').innerText = 'You are a Premium User ';
       document.getElementById('showLeaderboardBtn').style.display = 'block';
+      
       }
 
     } catch (err) {
@@ -361,7 +396,7 @@
 
  async function fetchLeaderboard() {
     try {
-      const res = await axios.get('http://localhost:3000/api/premium/leaderboard', {
+      const res = await axios.get(`${window.API_BASE_URL}/api/premium/leaderboard`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 

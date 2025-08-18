@@ -22,7 +22,7 @@ exports.login= async (req, res) => {
     }
 
     // 3. Generate JWT token
-    const token = jwt.sign({ userId: user.id },  'myHardCodedSecret123', { expiresIn: '1h' });
+    const token = jwt.sign({ userId: user.id },  'JWT_SECRET', { expiresIn: '1h' });
      console.log("************ ",token);
     // 4. Send token and user info
     res.json({

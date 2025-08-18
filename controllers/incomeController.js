@@ -1,38 +1,24 @@
 
-// controllers/dashboardController.js
-const Expense = require('../models/Expense');
-const User = require('../models/User');
+// controllers/incomeController.js
+const User = require("../models/User");
 
-exports.getDashboardEntries = async (req, res) => {
+exports.addIncome = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user.id; // comes from auth middleware
+    const { amount } = req.body;
+
     const user = await User.findByPk(userId);
-    const expenses = await Expense.findAll({ where: { userId } });
-
-    // format expenses
-    const entries = expenses.map(e => ({
-      date: e.createdAt.toISOString().split('T')[0],
-      description: e.description,
-      category: e.category,
-      amount: e.amount,
-      type: 'Expense'
-    }));
-
-    // add one monthly income entry from Users table
-    if (user.income > 0) {
-      const now = new Date();
-      entries.push({
-        date: `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`,
-        description: "Monthly Income",
-        category: "Salary",
-        amount: user.income,
-        type: 'Income'
-      });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
     }
 
-    res.json(entries);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Failed to load entries' });
+    // Update income
+    user.income = Number(user.income || 0) + Number(amount);
+    await user.save();
+
+    res.json({ success: true, income: user.income });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: "Error adding income" });
   }
 };

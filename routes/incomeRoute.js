@@ -1,9 +1,9 @@
 
-// const express = require('express');
-// const router = express.Router();
-// const dashboardController = require('../controllers/dashboardController');
-// const auth = require('../middleware/auth'); // middleware to verify JWT
+const express = require('express');
+const router = express.Router();
+const incomeController = require('../controllers/incomeController');
+const auth = require('../middleware/auth');
 
-// router.get('/income/entries', auth, incomeController.getDashboardEntries);
+router.post('/income/add', auth, incomeController.addIncome);
 
-// module.exports = router;
+module.exports = router;

@@ -9,7 +9,6 @@ const logincontroller=require('../controllers/loginController');
 router.post('/signup', usercontroller.adduser);
 router.post('/login', logincontroller.login);
 router.get('/status', authMiddleware, usercontroller.checkPremiumStatus);
-router.put('/income', usercontroller.updateIncome);
 
 
 

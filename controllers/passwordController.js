@@ -21,7 +21,7 @@ exports.forgotPassword = async (req, res) => {
     });
 
     // Build reset URL
-    const resetUrl = `http://localhost:3000/password/resetpassword/${resetRequest.id}`;
+    const resetUrl = `${window.API_BASE_URL}/password/resetpassword/${resetRequest.id}`;
 
 
     // Initialize Sendinblue
@@ -36,7 +36,7 @@ apiKeyInstance.apiKey = process.env.SIB_API_KEY.trim();
 
 
     const sender = { email: 'kalyani.brm@gmail.com', name: 'Kalyani Sahu' }; 
-    const receivers = [{ email :'sunil.sahu6522@gmail.com' }];
+    const receivers = [{ email :'kalyani.brm@gmail.com' }];
 
      const emailBody = `
       <p>Hi ${user.name || ''},</p>

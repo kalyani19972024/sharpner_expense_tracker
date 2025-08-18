@@ -20,7 +20,7 @@ exports.adduser = async (req, res) => {
     const user = await User.create({ name, email, password: hashedPassword });
 
     // 4. Generate JWT token using the created user's ID
-    const token = jwt.sign({ userId: user.id }, 'myHardCodedSecret123', { expiresIn: '1h' });
+    const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '1h' });
 
     // 5. Send token (and optionally user info) as response
     res.status(201).json({
@@ -44,7 +44,9 @@ exports.checkPremiumStatus = async (req, res) => {
      const user = await User.findByPk(req.user.id);
     if (!user) return res.status(404).json({ error: 'User not found' });
 
-    res.status(200).json({ isPremium: user.isPremium });
+    console.log("$$$$$$$$$$$$$$$", user.ispremiumuser);
+    // Match your DB column name (ispremiumuser)
+    res.status(200).json({ ispremiumuser: user.ispremiumuser });
     
   } catch (err) {
     console.error('Error checking premium status:', err);
@@ -53,23 +55,3 @@ exports.checkPremiumStatus = async (req, res) => {
 };
 
 
-exports.updateIncome = async (req, res) => {
-  try {
-    const userId = req.user.id; // comes from auth middleware
-    const { income } = req.body;
-
-    if (isNaN(income)) {
-      return res.status(400).json({ error: "Income must be a number" });
-    }
-
-    await User.update(
-      { income: parseFloat(income) },
-      { where: { id: userId } }
-    );
-
-    res.json({ message: "Income updated successfully", income });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Failed to update income" });
-  }
-};

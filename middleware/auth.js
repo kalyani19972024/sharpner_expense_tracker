@@ -15,7 +15,7 @@ module.exports = async (req, res, next) => {
       return res.status(401).json({ message: 'Token missing or invalid' });
     }
 
-    const decoded = jwt.verify(token, 'myHardCodedSecret123'); // ⚠️ replace with process.env.JWT_SECRET if using env
+    const decoded = jwt.verify(token,  process.env.JWT_SECRET); // ⚠️ replace with process.env.JWT_SECRET if using env
 
   
     const user = await User.findByPk(decoded.userId);

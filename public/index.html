@@ -1,6 +1,7 @@
 
 <!DOCTYPE html>
 <html lang="en">
+  <script src="/config.js"></script>
 <head>
     <meta charset="UTF-8">
     <title>Signup Form</title>
@@ -83,7 +84,7 @@
             }
 
         try {
-             const response = await axios.post('http://localhost:3000/api/signup', {
+             const response = await axios.post(`${window.API_BASE_URL}/api/signup`, {
              name, email,password
              });
 

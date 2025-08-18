@@ -1,6 +1,7 @@
 
 <!DOCTYPE html>
 <html lang="en">
+  <script src="/config.js"></script>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -95,10 +96,11 @@
 
     const email = document.getElementById('email').value.trim();
     const password = document.getElementById('password').value;
-    //const Basic_URL='http://localhost:3000' ;
+    console.log("API BASE URL from backend:", window.API_BASE_URL);
+    
 
     try {
-      const response = await axios.post('http://localhost:3000/api/login', {
+      const response = await axios.post(`${window.API_BASE_URL}/api/login`, {
         email,
         password
       });

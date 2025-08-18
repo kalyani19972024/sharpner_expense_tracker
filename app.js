@@ -1,3 +1,4 @@
+require('dotenv').config();
 const fs= require('fs');
 const Path = require('path');
 const express = require('express');
@@ -13,15 +14,15 @@ const authRoutes = require('./routes/authRoute');
 const purchaseRoutes = require('./routes/purchaseRoute');
 const premiumRoutes = require('./routes/premiumRoute');
 const passwordRoutes = require('./routes/passwordRoute');
-require('dotenv').config();
-//const PORT= process.env.PORT_NUMBER ;
+const incomeRoutes = require('./routes/incomeRoute');
+
+
 
 const User = require('./models/User');
 const Expense = require('./models/Expense');
-const Income = require('./models/Income');
-const Order = require('./models/order');
+const Order = require('./models/Order');
 const ForgotPasswordRequest=require('./models/ForgotPasswordRequest');
-//require('dotenv').config();
+
 
 //middleware
 app.use(cors());
@@ -30,6 +31,13 @@ app.use(express.urlencoded({ extended: true }));
 // Serve static files from the 'public' directory
 app.use(express.static('public'));
 
+// check if .env is loading
+console.log("BASE_URL from .env:", process.env.BASE_URL);
+
+app.get("/config.js", (req, res) => {
+  res.set("Content-Type", "application/javascript");
+  res.send(`window.API_BASE_URL = "${process.env.BASE_URL}";`);
+});
 
 
 
@@ -37,6 +45,7 @@ app.use(express.static('public'));
 app.use('/api/user', userRoutes);
 app.use('/api/expenses', expenseRoutes);
 app.use('/api', authRoutes);
+app.use(incomeRoutes);
 // app.use('api/purchase', purchaseRoutes);
 app.use('/api/purchase', require('./routes/purchaseRoute'));
 app.use('/api/premium', premiumRoutes);
@@ -53,11 +62,11 @@ Expense.belongsTo(User);
 User.hasMany(Order);
 Order.belongsTo(User);
 
-
-
-
 User.hasMany(ForgotPasswordRequest);
 ForgotPasswordRequest.belongsTo(User);
+
+
+
 
 
 sequelize.sync({alter:true}).then(() => {

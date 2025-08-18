@@ -1,5 +1,6 @@
 const Razorpay = require('razorpay');
-const Order = require('../models/order');
+const Order = require('../models/Order');
+const User= require('../models/User');
 
 exports.purchasePremium = async(req, res) => {
 
@@ -36,9 +37,10 @@ exports.updatetransactionstatus = async (req, res) => {
       return res.status(404).json({ success: false, message: "Order not found" });
     }
 
-    // Update order payment details
+    
     await order.update({ paymentId: payment_id, status: 'SUCCESSFUL' });
-
+  
+    await User.update({ ispremiumuser: true },{ where: { id: order.UserId } } );  
     
 
     return res.status(202).json({ success: true, message: "Transaction successful" });

@@ -27,6 +27,7 @@ const User = sequelize.define('User', {
  },
  income: {
   type: DataTypes.FLOAT,
+  allowNull: true,
   defaultValue: 0
 }
 });
